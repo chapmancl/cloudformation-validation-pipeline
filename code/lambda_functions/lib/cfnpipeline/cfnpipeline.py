@@ -38,8 +38,8 @@ class CFNPipeline(object):
         self.artifacts = None
         self.user_params = None
         self.output_artifacts = None
-        self.ci_test_path = None
-        self.continuation_data = None
+        self.ci_test_path = "ci"
+        self.ci_template_path = "templates"
         self.continuation_event = False
         self.ci_configs = None
         self.stack_statuses = {
@@ -257,10 +257,10 @@ class CFNPipeline(object):
                 self.job_data['actionConfiguration']['configuration']['UserParameters'], str(e)))
             raise ValueError(msg % (
                 self.job_data['actionConfiguration']['configuration']['UserParameters'], str(e)))
-        if "CITestPath" not in self.user_params.keys():
-            self.put_job_failure("CITestPath missing from user parameters, cannot continue...")
-            self.logger.error("CITestPath missing from user parameters, cannot continue...")
-            raise ValueError("CITestPath missing from user parameters, cannot continue...")
+        if "CITestPath" in self.user_params.keys():
+            self.ci_test_path = self.user_params["CITestPath"]
+		if "CITemplatePath" in self.user_params.keys():
+            self.ci_template_path = self.user_params["CITemplatePath"]
         if "CleanupNonFailed" in self.user_params:
             if self.user_params["CleanupNonFailed"] == 'No':
                 self.cleanup_non_failed = False
@@ -372,10 +372,10 @@ class CFNPipeline(object):
             configs = {}
             configs[a] = []
             log_msg = "getting configs from /tmp/artifacts/%s/%s/%s" % (
-                self.pipeline_name, a, self.user_params["CITestPath"])
+                self.pipeline_name, a, self.ci_test_path)
             self.logger.debug(log_msg)
             for root, dirs, files in os.walk("/tmp/artifacts/%s/%s/%s" % (
-                    self.pipeline_name, a, self.user_params["CITestPath"])):
+                    self.pipeline_name, a, self.ci_test_path)):
                 self.logger.debug({"event": "configs_contents", "files": [root, dirs, files]})
                 for file in files:
                     if file.endswith(".yml"):
@@ -1003,7 +1003,7 @@ class CFNPipeline(object):
             str: url for s3 object
         """
 
-        fname = '/tmp/artifacts/%s/%s/templates/%s' % (self.pipeline_name, artifact, template_name)
+        fname = '/tmp/artifacts/%s/%s/%s/%s' % (self.pipeline_name, artifact,self.ci_template_path, template_name)
         key = 'scratch/%s/%s-%s/%s' % (
             artifact,
             datetime.now().strftime('%y%m%d-%H%M%S-%f'),
@@ -1026,9 +1026,9 @@ class CFNPipeline(object):
             filename (str): parameter filename
         """
 
-        fname = '/tmp/artifacts/%s/%s/templates/%s' % (self.pipeline_name, artifact, filename)
+        fname = '/tmp/artifacts/%s/%s/%s/%s' % (self.pipeline_name, artifact,self.ci_template_path, filename)
         if not os.path.isfile(fname):
-            fname = '/tmp/artifacts/%s/%s/ci/%s' % (self.pipeline_name, artifact, filename)
+            fname = '/tmp/artifacts/%s/%s/%s/%s' % (self.pipeline_name, artifact,self.ci_test_path, filename)
         with open(fname) as json_data:
             params = json.load(json_data)
         return params
@@ -1456,9 +1456,10 @@ class CFNPipeline(object):
                 for test in config_file['tests'].keys():
                     fname = config_file['tests'][test]['template_file']
                     if fname not in templates.keys():
-                        a_path = '/tmp/artifacts/%s/%s/templates/%s' % (
+                        a_path = '/tmp/artifacts/%s/%s/%s/%s' % (
                             self.pipeline_name,
                             config,
+							self.ci_template_path,
                             config_file['tests'][test]['template_file'])
                         with open(a_path, 'r') as f:
                             templates[fname] = f.read()
