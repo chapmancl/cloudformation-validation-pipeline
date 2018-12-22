@@ -38,11 +38,12 @@ phases:
       - gem install cfn-nag""" + cfn_nag_version + """
   pre_build:
     commands:
+      - ls
       - echo Nothing to do in the pre_build phase...
   build:
     commands:
       - echo Build started on `date`
-      - cfn_nag_scan --input-path templates/""" + template_name + """ --debug
+      - cfn_nag_scan --input-path """ + template_name + """ --debug
   post_build:
     commands:
       - echo Build completed on `date`""")

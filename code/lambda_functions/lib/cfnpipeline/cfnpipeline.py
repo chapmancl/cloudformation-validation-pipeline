@@ -259,7 +259,7 @@ class CFNPipeline(object):
                 self.job_data['actionConfiguration']['configuration']['UserParameters'], str(e)))
         if "CITestPath" in self.user_params.keys():
             self.ci_test_path = self.user_params["CITestPath"]
-		if "CITemplatePath" in self.user_params.keys():
+        if "CITemplatePath" in self.user_params.keys():
             self.ci_template_path = self.user_params["CITemplatePath"]
         if "CleanupNonFailed" in self.user_params:
             if self.user_params["CleanupNonFailed"] == 'No':
